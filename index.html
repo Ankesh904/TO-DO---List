@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Shadow Quest – Habit RPG</title>
+
+  <!-- Mobile App Feel -->
+  <meta name="theme-color" content="#0b0f1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <style>
+    :root{
+      --bg:#0b0f1a; --panel:#11182a; --panel-2:#0e1424;
+      --text:#e6f0ff; --muted:#90a4c3;
+      --accent:#6ea8ff; --accent-2:#7a5cff;
+      --success:#62ffa1; --danger:#ff5c7a; --gold:#ffd76e;
+      --r:18px;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--text);
+      background:
+        radial-gradient(1100px 700px at 70% -10%, #102046 0%, transparent 60%),
+        radial-gradient(900px 600px at 0% 100%, #1a103a 0%, transparent 60%),
+        var(--bg);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow-x:hidden;
+    }
+
+    /* Header / HUD */
+    header{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:12px 16px; backdrop-filter: blur(6px);
+      background: rgba(8,12,24,.6);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .brand{display:flex; align-items:center; gap:10px}
+    .logo{width:32px;height:32px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      box-shadow:0 0 18px 4px rgba(110,168,255,.35), inset 0 0 16px rgba(255,255,255,.2)}
+    .brand h1{margin:0;font-size:18px;letter-spacing:.4px;font-weight:800}
+    .hud{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .badge{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--muted);font-size:13px}
+    .expbar{width:190px;height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+    .expfill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 0 12px rgba(110,168,255,.8)}
+
+    main{max-width:1024px;margin:16px auto;padding:0 14px}
+
+    /* Floating Orbs */
+    .orb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+    .orb{
+      position:relative;height:150px;border-radius:22px;padding:14px;cursor:pointer;overflow:hidden;
+      background:
+        radial-gradient(200px 130px at 80% 10%, rgba(110,168,255,.28), transparent 60%),
+        radial-gradient(220px 150px at 10% 100%, rgba(122,92,255,.22), transparent 62%),
+        var(--panel);
+      border:1px solid rgba(255,255,255,.08);
+      transition:transform .18s ease, box-shadow .18s ease;
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+    }
+    .orb:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 14px 28px rgba(0,0,0,.5)}
+    .orb h2{margin:4px 0 6px;font-size:18px}
+    .orb p{margin:0;color:var(--muted);font-size:13px}
+    .orb .bigicon{position:absolute;right:-8px;bottom:-14px;font-size:84px;opacity:.12;pointer-events:none}
+
+    /* Panels */
+    .panel{display:none;margin-top:16px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
+    .panel.active{display:block;animation:fade .22s ease}
+    @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .card{flex:1 1 280px;background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
+    h3{margin:6px 0 10px;font-size:17px}
+    h4{margin:0 0 8px}
+
+    /* Inputs & Buttons */
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"],input[type="number"],input[type="date"],select{
+      width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0b1122;color:var(--text);font-size:14px
+    }
+    .btn{padding:10px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1f2b4d,#182646);color:#fff;cursor:pointer;font-weight:650}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#061024}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.14)}
+    .btn:active{transform:scale(.97)}
+
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.08)}
+    th{text-align:left;color:var(--muted)}
+    .pill{padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:var(--muted);font-size:12px}
+    .pill.good{border-color:rgba(98,255,161,.55);color:#caffdf}
+    .pill.bad{border-color:rgba(255,92,122,.55);color:#ffd3dd}
+
+    /* Shadow Army & Shop */
+    .shadow-wrap{display:flex;gap:6px;flex-wrap:wrap}
+    .shadow{padding:6px 8px;border-radius:10px;background:rgba(122,92,255,.22);border:1px solid rgba(122,92,255,.4);font-size:12px}
+    .shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+    .shop-item{border-radius:12px;background:var(--panel);border:1px solid rgba(255,255,255,.08);padding:10px}
+
+    /* Overlay + Toast */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;z-index:50}
+    .overlay.show{display:flex}
+    .modal{width:min(480px,92vw);background:linear-gradient(180deg,#121a30,#0b1023);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;text-align:center}
+    .levelup{font-size:42px;text-shadow:0 0 22px rgba(110,168,255,.6)}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:#0f172a;border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:12px;display:none;z-index:60}
+    .toast.show{display:block;animation:pop .2s ease}
+    @keyframes pop{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+
+    @media (max-width:640px){
+      .expbar{width:150px}
+      .orb{height:130px}
+      .orb h2{font-size:16px}
+      .orb p{font-size:12px}
+      .btn{font-size:13px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <h1>Shadow Quest</h1>
+    </div>
+    <div class="hud">
+      <span id="level" class="badge">Lvl 1</span>
+      <div class="expbar"><div id="expfill" class="expfill"></div></div>
+      <span id="exptext" class="badge">0 / 100 EXP</span>
+      <span id="coins" class="badge">🪙 0</span>
+      <span id="streak" class="badge">🔥 0-day streak</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Floating Orbs Menu -->
+    <section class="orb-grid">
+      <article class="orb" data-open="#panel-start">
+        <h2>🗡 Start Task</h2>
+        <p>Begin a quest you created and earn EXP.</p>
+        <div class="bigicon">🗡️</div>
+      </article>
+      <article class="orb" data-open="#panel-plan">
+        <h2>📜 Plan</h2>
+        <p>Create or edit habits with difficulty and type.</p>
+        <div class="bigicon">📜</div>
+      </article>
+      <article class="orb" data-open="#panel-reward">
+        <h2>🎁 Reward</h2>
+        <p>Open chests, shop skins, view titles.</p>
+        <div class="bigicon">🎁</div>
+      </article>
+    </section>
+
+    <!-- START PANEL -->
+    <section id="panel-start" class="panel active">
+      <h3>🗡 Daily Action</h3>
+      <div class="row">
+        <div class="card" style="flex:2">
+          <h4>Today's Quests</h4>
+          <table id="todayTable">
+            <thead><tr><th>Quest</th><th>Type</th><th>Diff</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p id="noToday" class="muted" style="display:none">No quests yet. Add some in <strong>Plan</strong> → then return!</p>
+        </div>
+        <div class="card">
+          <h4>Dungeon Boss (7-Day Streak)</h4>
+          <div class="expbar" style="height:12px;margin:6px 0 8px"><div id="dungeonFill" class="expfill"></div></div>
+          <p id="dungeonText" class="muted">Complete at least one quest each day for 7 days to beat the boss.</p>
+          <button id="claimDungeon" class="btn primary" style="display:none">Claim Boss Loot (🪙 200 + 👑 Title)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Shadow Army</h4>
+        <div id="shadowArmy" class="shadow-wrap"></div>
+        <p class="muted" style="margin-top:6px">Every habit streak summons a Shadow. Keep streaks → more power. Skips weaken them.</p>
+      </div>
+    </section>
+
+    <!-- PLAN PANEL -->
+    <section id="panel-plan" class="panel">
+      <h3>📜 Plan Quests</h3>
+      <div class="row">
+        <div class="card">
+          <label for="name">Quest Name</label>
+          <input id="name" type="text" placeholder="e.g., Read 20 minutes" />
+          <div class="row" style="margin-top:10px">
+            <div class="card" style="flex:1">
+              <label for="type">Type</label>
+              <select id="type">
+                <option value="daily">Daily</option>
+                <option value="main">Main</option>
+                <option value="side">Side</option>
+              </select>
+            </div>
+            <div class="card" style="flex:1">
+              <label for="difficulty">Difficulty (1–5)</label>
+              <input id="difficulty" type="number" min="1" max="5" value="2" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="card" style="flex:1">
+              <label for="startDate">Start Date</label>
+              <input id="startDate" type="date" />
+            </div>
+            <div class="card" style="flex:1">
+              <label for="notes">Notes</label>
+              <input id="notes" type="text" placeholder="Optional" />
+            </div>
+          </div>
+          <button id="addQuest" class="btn primary">Add Quest</button>
+        </div>
+
+        <div class="card" style="flex:2">
+          <h4>All Quests</h4>
+          <table id="allTable">
+            <thead><tr><th>Quest</th><th>Type</th><th>Diff</th><th>Streak</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REWARD PANEL -->
+    <section id="panel-reward" class="panel">
+      <h3>🎁 Rewards & Shop</h3>
+      <div class="row">
+        <div class="card">
+          <h4>Chest</h4>
+          <p class="muted">Complete quests to charge your chest. Requires 100% to open.</p>
+          <div class="expbar" style="height:12px;margin:6px 0 8px"><div id="chestFill" class="expfill"></div></div>
+          <button id="openChest" class="btn" disabled>Open Chest</button>
+        </div>
+        <div class="card">
+          <h4>Your Titles</h4>
+          <div id="titles" class="shadow-wrap"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Shop (Auras & Themes)</h4>
+        <div id="shop" class="shop-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay & Toast -->
+  <div id="overlay" class="overlay">
+    <div class="modal">
+      <div id="modalIcon" class="levelup">LEVEL UP!</div>
+      <h3 id="modalTitle">You reached Level 2</h3>
+      <p id="modalText" class="muted">New aura unlocked.</p>
+      <button id="closeOverlay" class="btn" style="margin-top:8px">Close</button>
+    </div>
+  </div>
+  <div id="toast" class="toast">+ 20 EXP • + 10 🪙</div>
+
+  <script>
+    /* ===== Storage ===== */
+    const store = {
+      get(k, fb){ try{ return JSON.parse(localStorage.getItem(k)) ?? fb }catch{ return fb } },
+      set(k, v){ localStorage.setItem(k, JSON.stringify(v)) }
+    };
+    const todayStr = () => new Date().toISOString().slice(0,10);
+
+    /* ===== State ===== */
+    let player = store.get('player', {
+      level:1, exp:0, coins:0, streakDays:0, lastActive:null, chest:0,
+      titles:["Novice Hunter"], skinsOwned:["Default"], activeSkin:"Default"
+    });
+    let habits = store.get('habits', []); // {id,name,type,difficulty,streak,lastDone,startDate,notes}
+
+    /* ===== UI Refs ===== */
+    const $ = id => document.getElementById(id);
+    const levelEl=$('level'), expfill=$('expfill'), exptext=$('exptext'), coinsEl=$('coins'),
+          streakEl=$('streak'), todayTable=$('todayTable').querySelector('tbody'),
+          allTable=$('allTable').querySelector('tbody'), noToday=$('noToday'),
+          dungeonFill=$('dungeonFill'), dungeonText=$('dungeonText'), claimDungeon=$('claimDungeon'),
+          chestFill=$('chestFill'), openChest=$('openChest'), titlesBox=$('titles'),
+          shopBox=$('shop'), shadowArmy=$('shadowArmy'), overlay=$('overlay'),
+          modalIcon=$('modalIcon'), modalTitle=$('modalTitle'), modalText=$('modalText'), toast=$('toast');
+
+    /* ===== Core Mechanics ===== */
+    const xpFor = lvl => 100 + (lvl-1)*60;
+    const rewardFor = h => {
+      const base = {daily:12, main:24, side:8}[h.type] || 10;
+      const mul = 0.8 + (Number(h.difficulty)||1)*0.3; // 1→1.1x, 5→2.3x
+      return { exp:Math.round(base*mul), coins:Math.round((base/2)*mul) };
+    };
+    function save(){ store.set('player',player); store.set('habits',habits); renderHUD(); }
+
+    function renderHUD(){
+      const cap = xpFor(player.level), pct = Math.min(100, Math.round(player.exp/cap*100));
+      levelEl.textContent = `Lvl ${player.level}`;
+      expfill.style.width = pct + '%';
+      exptext.textContent = `${player.exp} / ${cap} EXP`;
+      coinsEl.textContent = `🪙 ${player.coins}`;
+      streakEl.textContent = `🔥 ${player.streakDays}-day streak`;
+      chestFill.style.width = Math.min(100, player.chest) + '%';
+      openChest.disabled = player.chest < 100;
+      document.body.style.boxShadow = player.level>=5 ? 'inset 0 0 120px rgba(122,92,255,.14)' : 'none';
+    }
+    function toastIt(t){ toast.textContent=t; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1300) }
+
+    function levelCheck(){
+      let up=false;
+      while(player.exp>=xpFor(player.level)){ player.exp -= xpFor(player.level); player.level++; up=true; }
+      if(up){
+        showOverlay('LEVEL UP!', `Welcome to Level ${player.level}`, 'New aura intensity unlocked.');
+        if(player.level===3 && !player.titles.includes('Shadow Initiate')) player.titles.push('Shadow Initiate');
+        if(player.level===5 && !player.titles.includes('Gate Breaker')) player.titles.push('Gate Breaker');
+      }
+    }
+    function showOverlay(iconTitle,title,text){
+      modalIcon.textContent=iconTitle; modalTitle.textContent=title; modalText.textContent=text; overlay.classList.add('show');
+    }
+    $('closeOverlay').onclick = ()=> overlay.classList.remove('show');
+
+    /* ===== CRUD ===== */
+    function addHabit(name,type,difficulty,startDate,notes){
+      const id = crypto.randomUUID?.() || String(Date.now())+Math.random();
+      habits.push({ id, name, type, difficulty:Number(difficulty)||1, streak:0, lastDone:null, startDate:startDate||todayStr(), notes:notes||'' });
+      save(); renderAll(); renderToday(); renderShadows();
+    }
+    function removeHabit(id){ habits = habits.filter(h=>h.id!==id); save(); renderAll(); renderToday(); renderShadows(); }
+
+    /* ===== Complete ===== */
+    function completeHabit(id){
+      const h = habits.find(x=>x.id===id); if(!h) return;
+      const t = todayStr();
+      if(h.lastDone===t){ toastIt('Already completed today ✨'); return; }
+
+      const y = new Date(Date.now()-86400000).toISOString().slice(0,10);
+      h.streak = (h.lastDone===y) ? h.streak+1 : 1;
+      h.lastDone = t;
+
+      updateGlobalStreak();
+
+      const r = rewardFor(h);
+      player.exp += r.exp; player.coins += r.coins;
+      player.chest = Math.min(100, player.chest + 12);
+
+      if(h.streak===7 && !player.titles.includes('Weekly Grinder')) player.titles.push('Weekly Grinder');
+      if(h.streak===30 && !player.titles.includes('Shadow Monarch of Consistency')) player.titles.push('Shadow Monarch of Consistency');
+
+      levelCheck(); save();
+      renderToday(); renderAll(); renderShop(); renderTitles(); renderShadows(); renderDungeon();
+      slashFx();
+      toastIt(`+ ${r.exp} EXP • + ${r.coins} 🪙`);
+    }
+    function updateGlobalStreak(){
+      const last = player.lastActive, t = todayStr(), y = new Date(Date.now()-86400000).toISOString().slice(0,10);
+      if(last===t) return;
+      player.streakDays = (last===y) ? (player.streakDays+1) : 1;
+      player.lastActive = t;
+      if(player.streakDays % 7 === 0){
+        claimDungeon.style.display='inline-block';
+        dungeonText.textContent='Boss defeated! Claim your loot.';
+      }
+    }
+
+    /* ===== Renderers ===== */
+    function cap(s){ return s ? s[0].toUpperCase()+s.slice(1) : s }
+    function renderToday(){
+      const t = todayStr();
+      const todays = habits.filter(h => new Date(h.startDate) <= new Date(t));
+      todayTable.innerHTML='';
+      if(todays.length===0){ noToday.style.display='block'; return } else noToday.style.display='none';
+      todays.forEach(h=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${h.name}</td>
+          <td><span class="pill">${cap(h.type)}</span></td>
+          <td><span class="pill">${h.difficulty}</span></td>
+          <td>${h.lastDone===t?'<span class="pill good">Done</span>':'<span class="pill">Pending</span>'}</td>
+          <td><button class="btn ${h.lastDone===t?'ghost':''}" ${h.lastDone===t?'disabled':''} data-complete="${h.id}">${h.lastDone===t?'Completed':'Complete'}</button></td>`;
+        todayTable.appendChild(tr);
+      });
+      todayTable.querySelectorAll('button[data-complete]').forEach(b=> b.onclick = ()=> completeHabit(b.getAttribute('data-complete')));
+    }
+    function renderAll(){
+      allTable.innerHTML='';
+      habits.forEach(h=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${h.name}</td>
+          <td><span class="pill">${cap(h.type)}</span></td>
+          <td><span class="pill">${h.difficulty}</span></td>
+          <td><span class="pill ${h.streak>=7?'good':''}">${h.streak}</span></td>
+          <td><button class="btn ghost" data-del="${h.id}">Delete</button></td>`;
+        allTable.appendChild(tr);
+      });
+      allTable.querySelectorAll('button[data-del]').forEach(b=> b.onclick = ()=> removeHabit(b.getAttribute('data-del')));
+    }
+    function renderTitles(){
+      titlesBox.innerHTML=''; player.titles.forEach(t=>{
+        const s=document.createElement('span'); s.className='shadow'; s.textContent=t; titlesBox.appendChild(s);
+      });
+    }
+    function renderShop(){
+      const items = [
+        { id:'Aura-Blue', name:'Blue Aura', price:120, desc:'Cool blue glow', apply:()=> aura('blue') },
+        { id:'Aura-Purple', name:'Purple Aura', price:180, desc:'Shadow monarch vibes', apply:()=> aura('purple') },
+        { id:'Theme-Starlit', name:'Starlit Theme', price:200, desc:'Starry backdrop', apply:()=> theme('starlit') },
+        { id:'Blade-Obsidian', name:'Obsidian Blade', price:160, desc:'Dark blade finish', apply:()=>{} },
+      ];
+      shopBox.innerHTML='';
+      items.forEach(it=>{
+        const owned = player.skinsOwned.includes(it.id);
+        const div = document.createElement('div');
+        div.className='shop-item';
+        div.innerHTML = `
+          <strong>${it.name}</strong>
+          <p class="muted" style="margin:6px 0">${it.desc}</p>
+          <div class="row" style="align-items:center">
+            <span class="badge">🪙 ${it.price}</span>
+            <span style="flex:1"></span>
+            <button class="btn ${owned?'':'primary'}" data-buy="${it.id}">${owned?'Apply':'Buy'}</button>
+          </div>`;
+        shopBox.appendChild(div);
+      });
+      shopBox.querySelectorAll('button[data-buy]').forEach(b=> b.onclick = ()=> buyOrApply(b.getAttribute('data-buy')));
+    }
+    function renderShadows(){
+      shadowArmy.innerHTML='';
+      habits.forEach(h=>{
+        if(h.streak>0){
+          const p = Math.min(999, h.streak * (Number(h.difficulty)||1) * 3);
+          const s = document.createElement('span');
+          s.className='shadow'; s.textContent = `${h.name} • Power ${p}`;
+          shadowArmy.appendChild(s);
+        }
+      });
+    }
+    function renderDungeon(){
+      const pct = Math.min(100, (player.streakDays % 7) * (100/7));
+      dungeonFill.style.width = pct + '%';
+      if(pct===0){ dungeonText.textContent='Complete at least one quest each day for 7 days to beat the boss.'; claimDungeon.style.display='none'; }
+    }
+
+    /* ===== Visuals ===== */
+    function slashFx(){
+      const s=document.createElement('div'); s.textContent='⚡';
+      s.style.position='fixed'; s.style.left = (Math.random()*70+10)+'vw'; s.style.top='18vh';
+      s.style.fontSize='60px'; s.style.opacity='.95'; s.style.filter='drop-shadow(0 0 22px rgba(110,168,255,.8))';
+      s.style.transition='transform .6s ease, opacity .6s ease'; document.body.appendChild(s);
+      requestAnimationFrame(()=>{ s.style.transform='translateY(42vh) rotate(18deg) scale(1.25)'; s.style.opacity='0'; });
+      setTimeout(()=> s.remove(), 620);
+    }
+    function aura(color){
+      if(color==='purple'){
+        document.body.style.background = `radial-gradient(1100px 700px at 70% -10%, #26134a 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #1b0f38 0%, transparent 60%), var(--bg)`;
+      } else {
+        document.body.style.background = `radial-gradient(1100px 700px at 70% -10%, #102046 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #1a103a 0%, transparent 60%), var(--bg)`;
+      }
+    }
+    function theme(t){
+      if(t==='starlit'){
+        document.body.style.backgroundImage =
+          `radial-gradient(1100px 700px at 70% -10%, #102046 0%, transparent 60%), radial-gradient(900px 600px at 0% 100%, #1a103a 0%, transparent 60%), radial-gradient(2px 2px at 22% 30%, rgba(255,255,255,.7), transparent 60%)`;
+      }
+    }
+
+    /* ===== Shop / Chest / Dungeon Rewards ===== */
+    function buyOrApply(id){
+      const items={
+        'Aura-Blue':{price:120, apply:()=>aura('blue')},
+        'Aura-Purple':{price:180, apply:()=>aura('purple')},
+        'Theme-Starlit':{price:200, apply:()=>theme('starlit')},
+        'Blade-Obsidian':{price:160, apply:()=>{}},
+      };
+      const it = items[id]; if(!it) return;
+      if(player.skinsOwned.includes(id)){ it.apply(); player.activeSkin=id; toastIt('Applied!'); return; }
+      if(player.coins < it.price){ toastIt('Not enough coins 😅'); return; }
+      player.coins -= it.price; player.skinsOwned.push(id); player.activeSkin=id; it.apply(); save(); renderShop(); toastIt('Purchased & Applied!');
+    }
+    openChest.onclick = ()=>{
+      if(player.chest < 100) return;
+      player.chest = 0;
+      const gold = 80 + Math.floor(Math.random()*120);
+      const exp = 60 + Math.floor(Math.random()*100);
+      player.coins += gold; player.exp += exp; levelCheck(); save(); renderHUD();
+      showOverlay('🧰', 'Treasure Chest', `You found 🪙 ${gold} and ${exp} EXP!`);
+    };
+    claimDungeon.onclick = ()=>{
+      claimDungeon.style.display='none';
+      player.coins += 200; player.titles.includes('Gate Conqueror') || player.titles.push('Gate Conqueror');
+      player.exp += 120; levelCheck(); save(); renderHUD(); renderTitles();
+      showOverlay('👑','Dungeon Cleared','Boss defeated! Rewards claimed.');
+    };
+
+    /* ===== Navigation ===== */
+    document.querySelectorAll('.orb').forEach(o=>{
+      o.addEventListener('click',()=>{
+        const target = o.getAttribute('data-open');
+        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+        document.querySelector(target).classList.add('active');
+      })
+    });
+
+    /* ===== Plan Form ===== */
+    $('addQuest').onclick = ()=>{
+      const name=$('name').value.trim(), type=$('type').value, diff=$('difficulty').value,
+            sd=$('startDate').value || todayStr(), n=$('notes').value;
+      if(!name){ toastIt('Name required'); return; }
+      addHabit(name,type,diff,sd,n);
+      $('name').value=''; $('notes').value='';
+      toastIt('Quest added!');
+    };
+
+    /* ===== Init ===== */
+    function firstTime(){
+      if(!player.lastActive){ player.lastActive = todayStr(); store.set('player',player); }
+    }
+    function renderAllUI(){
+      renderHUD(); renderAll(); renderToday(); renderShop(); renderTitles(); renderShadows(); renderDungeon();
+    }
+    firstTime(); renderAllUI();
+  </script>
+</body>
+</html>
